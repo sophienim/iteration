@@ -1,0 +1,195 @@
+---
+title: "Writing Functions"
+author: "Sophie Chen"
+output: github_document
+---
+
+```{r setup, include=FALSE, message=FALSE,warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rvest)
+```
+
+## Simple function
+lets compute the z-score version of a list of numbers...
+
+```{r}
+set.seed(1)
+x_vec = rnorm(25,mean=7,sd=4)
+(x_vec-mean(x_vec)) / sd(x_vec)
+```
+
+Let's see this as a function...
+
+```{r}
+z_score = function(x) {
+  
+  z = (x-mean(x)) / sd(x)
+  
+  return(z)
+  
+}
+
+z_score(x=x_vec)
+z_score(x=1:10)
+```
+
+Unintended argument values ...
+
+```{r, error = TRUE}
+z_score(19.375)
+z_score("my name is jeff")
+z_score(iris)
+z_score(x=rbinom(1000,1,0.6))
+z_score(c(TRUE, TRUE, FALSE, TRUE))
+```
+
+Add some control statements.
+
+```{r}
+z_score = function(x) {
+  
+  if (!is.numeric(x)) {
+    stop("x must be numeric")
+  } else if (length(x) < 3) {
+    stop("x must have three or more entries")
+  }
+  
+  z = (x-mean(x)) / sd(x)
+  
+  z
+  
+}
+```
+
+## Multiple outputs
+
+Add mean and sd to output ...
+
+```{r}
+mean_and_sd = function(x) {
+  
+  if (!is.numeric(x)) {
+    stop("x must be numeric")
+  } else if (length(x) < 3) {
+    stop("x must have three or more entries")
+  }
+  
+  mean_x = mean(x)
+  sd_x = sd(x)
+  z = (x-mean(x)) / sd(x)
+  
+  tibble(mean = mean_x,
+             sd = sd_x,
+             z = z)
+  
+}
+mean_and_sd(x=x_vec)
+mean_and_sd(x=1:10)
+```
+
+
+
+### LoTR function!!
+```{r}
+sim_mean_sd = function(n, true_mean = 2, true_sd = 3) {
+  
+  sim_data = tibble(
+    x = rnorm(n, mean = true_mean, sd = true_sd),
+  )
+  
+  sim_data %>% 
+    summarize(
+      mu_hat = mean(x),
+      sigma_hat = sd(x)
+    )
+}
+
+sim_mean_sd(26)
+```
+### revisit problems
+```{r}
+url = "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber=1"
+
+dynamite_html = read_html(url)
+
+review_titles = 
+  dynamite_html %>%
+  html_nodes(".a-text-bold span") %>%
+  html_text()
+
+review_stars = 
+  dynamite_html %>%
+  html_nodes("#cm_cr-review_list .review-rating") %>%
+  html_text() %>%
+  str_extract("^\\d") %>%
+  as.numeric()
+
+review_text = 
+  dynamite_html %>%
+  html_nodes(".review-text-content span") %>%
+  html_text() %>% 
+  str_replace_all("\n", "") %>% 
+  str_trim()
+
+reviews = tibble(
+  title = review_titles,
+  stars = review_stars,
+  text = review_text
+)
+# Let’s write a quick function to scrape review information for any URL to an Amazon review page. Note that this contains some extra code for manipulating the review_text – our previous code worked for the first page, but broke on a later page. The added lines remove entries in review_text that come from embedded images after extracting text from HTML using CSS tags.
+
+read_page_reviews = function(url) {
+  
+  dynamite_html = read_html(url)
+  
+  review_titles = 
+    html %>%
+    html_nodes(".a-text-bold span") %>%
+    html_text()
+  
+  review_stars = 
+    html %>%
+    html_nodes("#cm_cr-review_list .review-rating") %>%
+    html_text() %>%
+    str_extract("^\\d") %>%
+    as.numeric()
+  
+  review_text = 
+    html %>%
+    html_nodes(".review-text-content span") %>%
+    html_text() %>% 
+    str_replace_all("\n", "") %>% 
+    str_trim() %>% 
+    str_subset("The media could not be loaded.", negate = TRUE) %>% 
+    str_subset("^$", negate = TRUE)
+  
+  reviews=
+    tibble(
+    title = review_titles,
+    stars = review_stars,
+    text = review_text
+  )
+  reviews
+}
+```
+### Next we’ll use this to read in reviews from a few pages and combine the results.
+```{r}
+url_base = "https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber="
+
+vec_urls = str_c(url_base, c(1,2,4,5))
+
+dynamite_reviews = bind_rows(
+  read_page_reviews(vec_urls[1]),
+  read_page_reviews(vec_urls[2]),
+  read_page_reviews(vec_urls[4]),
+  read_page_reviews(vec_urls[5])
+)
+
+dynamite_reviews
+
+```
+
+
+
+
