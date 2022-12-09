@@ -118,7 +118,7 @@ In the code below, I create a data frame with rows for 100 iterations; the sampl
 ```{r}
 sim_results_df = 
   expand_grid(
-    sample_size = 30,
+    sample_size = c(30,60,120,240),
     iter = 1:100
   ) %>% 
   mutate(
@@ -158,7 +158,7 @@ Building on the code above, I'll set up a tibble with iterations and the sample 
 sim_results_df = 
   expand_grid(
     sample_size = c(30, 60, 120, 240),
-    iter = 1:1000
+    iter = 1:100
   ) %>% 
   mutate(
     estimate_df = map(sample_size, sim_mean_sd)
@@ -248,7 +248,7 @@ sim_results_df =
   expand_grid(
     sample_size = c(30, 60, 120, 240),
     true_sd = c(6, 3),
-    iter = 1:1000
+    iter = 1:100
   ) %>% 
   mutate(
     estimate_df = 
